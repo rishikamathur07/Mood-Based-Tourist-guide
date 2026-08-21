@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Profile · Mood{% endblock %}
+
+{% block content %}
+  <div class="profile-hero">
+    <div>
+      <p class="eyebrow">Profile</p>
+      <h1>{{ g.user.name }}</h1>
+      <p class="muted-line">{{ g.user.email }}</p>
+    </div>
+    <div class="rating-summary">
+      <span>Your average</span>
+      <strong>{{ "%.1f"|format(average_rating) if reviews else "—" }}</strong>
+    </div>
+  </div>
+
+  <div class="help-chip mb-4">
+    <strong>How it works:</strong>
+    Heart places from any itinerary to mark favourites.
+    Mark a trip complete, then leave star ratings and short reviews — they show up here and stay editable.
+  </div>
+
+  <div class="profile-grid">
+    <section class="soft-panel">
+      <h2>My trips</h2>
+      {% for trip in trips[:5] %}
+        <a class="profile-row" href="{{ url_for('trips.detail', trip_id=trip.id) }}">
+          <div>
+            <span>{{ trip.city }}</span>
+            <small>{{ trip.status }} · {{ trip.mood }} · {{ trip.itinerary_stops|length }} stops</small>
+          </div>
+        </a>
+      {% else %}
+        <p class="muted-line">No trips yet. <a href="{{ url_for('trips.setup') }}">Plan one</a>.</p>
+      {% endfor %}
+    </section>
+
+    <section class="soft-panel">
+      <h2>Favourites</h2>
+      <p class="muted-line mb-2">♥ places you’ve hearted from itineraries.</p>
+      {% for favourite in favourites[:8] %}
+        <div class="profile-row">
+          <div>
+            <span>{{ favourite.place.name }}</span>
+            <small>{{ favourite.place.city }} · {{ favourite.place.category }}</small>
+          </div>
+          <div class="profile-row-actions">
+            <form method="post" action="{{ url_for('profile.remove_favourite', favourite_id=favourite.id) }}">
+              <button class="btn btn-sm btn-heart is-saved" type="submit" title="Remove favourite">
+                <span class="heart" aria-hidden="true">♥</span> Remove
+              </button>
+            </form>
+          </div>
+        </div>
+      {% else %}
+        <p class="muted-line">Nothing saved yet — open a trip and tap Favourite on a stop.</p>
+      {% endfor %}
+    </section>
+
+    <section class="soft-panel ratings-panel">
+      <h2>Ratings</h2>
+      <p class="muted-line mb-2">Stars you’ve given after completing trips.</p>
+      {% if reviews %}
+        {% for rating in range(5, 0, -1) %}
+          <div class="rating-bar">
+            <span>{{ rating }} ★</span>
+            <div><i style="width: {{ (rating_counts[rating] / reviews|length * 100) if reviews else 0 }}%"></i></div>
+            <small>{{ rating_counts[rating] }}</small>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="muted-line">Complete a trip, then rate stops to fill this chart.</p>
+      {% endif %}
+    </section>
+
+    <section class="soft-panel">
+      <h2>My reviews</h2>
+      {% for review in reviews[:6] %}
+        <div class="profile-row" style="flex-direction: column; align-items: stretch;">
+          <div>
+            <span>{{ review.place.name }}</span>
+            <small>{{ "★" * review.rating }}{{ "☆" * (5 - review.rating) }} · {{ review.place.city }}</small>
+          </div>
+          <form method="post" action="{{ url_for('profile.update_review', review_id=review.id) }}" class="review-form mt-2" data-star-form>
+            <input type="hidden" name="rating" value="{{ review.rating }}">
+            <div class="star-picker" data-star-picker data-value="{{ review.rating }}" aria-label="Edit rating">
+              {% for rating in range(1, 6) %}
+                <button type="button" data-star="{{ rating }}" aria-label="{{ rating }} stars">★</button>
+              {% endfor %}
+            </div>
+            <input class="form-control form-control-sm" name="comment" value="{{ review.comment or '' }}" placeholder="Your note">
+            <button class="btn btn-primary btn-sm" type="submit">Save</button>
+            <button class="btn btn-ghost btn-sm" type="submit" name="delete" value="1">Delete</button>
+          </form>
+        </div>
+      {% else %}
+        <p class="muted-line">Reviews appear here after you rate places on a completed trip.</p>
+      {% endfor %}
+    </section>
+
+    <section class="soft-panel">
+      <h2>Settings</h2>
+      <form method="post" action="{{ url_for('profile.update_settings') }}">
+        <div class="mb-3">
+          <label class="form-label" for="name">Display name</label>
+          <input class="form-control" id="name" name="name" value="{{ g.user.name }}" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="email">Email</label>
+          <input class="form-control" id="email" value="{{ g.user.email }}" disabled>
+          <small class="muted-line">Email is used to sign in and can’t be changed here.</small>
+        </div>
+        <button class="btn btn-primary btn-sm" type="submit">Save name</button>
+      </form>
+      <div class="help-chip">
+        Your trips, favourites, and reviews stay on this account. Log out from the top bar anytime.
+      </div>
+    </section>
+  </div>
+{% endblock %}

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Budget helper · Mood{% endblock %}
+
+{% block content %}
+  <div class="section-header">
+    <div>
+      <p class="eyebrow">Budget</p>
+      <h1>What fits your spend?</h1>
+      <p class="muted-line">Enter a city, mood, and budget — see how many places you can afford.</p>
+    </div>
+    <a class="btn btn-ghost" href="{{ url_for('tools.index') }}">All tools</a>
+  </div>
+
+  <section class="form-panel mb-4">
+    <form method="get" class="form-grid">
+      <div class="mb-3">
+        <label class="form-label" for="city">City</label>
+        <select class="form-select" id="city" name="city" required>
+          <option value="">Choose city</option>
+          {% for item in cities %}
+            <option value="{{ item }}" {% if item == city %}selected{% endif %}>{{ item }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="mood">Mood</label>
+        <select class="form-select" id="mood" name="mood" required>
+          <option value="">Choose mood</option>
+          {% for item in moods %}
+            <option value="{{ item }}" {% if item == mood %}selected{% endif %}>{{ item }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="currency">Currency</label>
+        <select class="form-select" id="currency" name="currency">
+          <option value="INR" {% if currency == "INR" %}selected{% endif %}>₹ INR</option>
+          <option value="USD" {% if currency == "USD" %}selected{% endif %}>$ USD</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="amount">Your budget</label>
+        <input class="form-control" id="amount" name="amount" type="number" min="1" value="{{ budget_amount or '' }}" placeholder="e.g. 5000" required>
+      </div>
+      <div class="mb-3 d-flex align-items-end">
+        <button class="btn btn-primary" type="submit">Check budget</button>
+      </div>
+    </form>
+  </section>
+
+  {% if budget_info %}
+    <section class="summary-grid">
+      <div>
+        <span>Places that fit</span>
+        <strong>{{ budget_info.affordable_count }} / {{ budget_info.total_count }}</strong>
+      </div>
+      <div>
+        <span>Average place cost</span>
+        <strong>{{ format_money(budget_info.average_cost, currency) }}</strong>
+      </div>
+      <div>
+        <span>Median cost</span>
+        <strong>{{ format_money(budget_info.median_cost, currency) }}</strong>
+      </div>
+    </section>
+
+    <section class="soft-panel">
+      <h2>Top affordable picks</h2>
+      {% for place in affordable_places %}
+        <div class="profile-row">
+          <div>
+            <span>{{ place.name }}</span>
+            <small>
+              {{ place.category }}
+              · {{ format_money(place.avg_cost, currency) }}
+              · {{ format_duration(place.avg_time_spent_mins) }}
+              · mood {{ "%.1f"|format(place.mood_match_score) }}
+            </small>
+          </div>
+        </div>
+      {% else %}
+        <p class="muted-line mb-0">Nothing fits this budget — try increasing your spend.</p>
+      {% endfor %}
+      {% if city and mood %}
+        <a class="btn btn-primary btn-sm mt-3" href="{{ url_for('trips.setup') }}?city={{ city }}">Plan a trip to {{ city }}</a>
+      {% endif %}
+    </section>
+  {% endif %}
+{% endblock %}

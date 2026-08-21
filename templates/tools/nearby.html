@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Nearby picks · Mood{% endblock %}
+
+{% block content %}
+  <div class="section-header">
+    <div>
+      <p class="eyebrow">Nearby</p>
+      <h1>What else is close by?</h1>
+      <p class="muted-line">Pick a stop from your trip — see other mood-matched places nearby.</p>
+    </div>
+    <a class="btn btn-ghost" href="{{ url_for('tools.index') }}">All tools</a>
+  </div>
+
+  <section class="form-panel mb-4">
+    <form method="get" class="form-grid">
+      <div class="mb-3">
+        <label class="form-label" for="trip_id">Trip</label>
+        <select class="form-select" id="trip_id" name="trip_id" onchange="this.form.submit()">
+          {% for trip in trips %}
+            <option value="{{ trip.id }}" {% if selected_trip and selected_trip.id == trip.id %}selected{% endif %}>
+              {{ trip.city }} · {{ trip.mood }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      {% if selected_trip and selected_trip.itinerary_stops %}
+        <div class="mb-3">
+          <label class="form-label" for="stop_id">Starting from</label>
+          <select class="form-select" id="stop_id" name="stop_id">
+            {% for stop in selected_trip.itinerary_stops %}
+              <option value="{{ stop.id }}" {% if selected_stop and selected_stop.id == stop.id %}selected{% endif %}>
+                {{ stop.place.name }} (Day {{ stop.day }})
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3 d-flex align-items-end">
+          <button class="btn btn-primary" type="submit">Find nearby</button>
+        </div>
+      {% endif %}
+    </form>
+    {% if not trips %}
+      <p class="muted-line mt-2 mb-0"><a href="{{ url_for('trips.setup') }}">Create a trip</a> first.</p>
+    {% endif %}
+  </section>
+
+  {% if selected_stop %}
+    <div class="help-chip mb-4">
+      Showing alternatives near <strong>{{ selected_stop.place.name }}</strong> in {{ selected_trip.city }}.
+    </div>
+    <section class="soft-panel">
+      {% for item in alternatives %}
+        <div class="profile-row">
+          <div>
+            <span>{{ item.name }}</span>
+            <small>
+              {{ item.category }}
+              · {{ item.distance_km }} km away
+              · mood {{ "%.1f"|format(item.score) }}
+              · {{ format_money(item.cost, currency) }}
+              · {{ format_duration(item.time) }}
+            </small>
+          </div>
+        </div>
+      {% else %}
+        <p class="muted-line mb-0">No other mood-matched places found nearby that aren’t already on this trip.</p>
+      {% endfor %}
+    </section>
+  {% endif %}
+{% endblock %}

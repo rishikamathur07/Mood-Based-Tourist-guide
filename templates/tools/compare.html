@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Compare trips · Mood{% endblock %}
+
+{% block content %}
+  <div class="section-header">
+    <div>
+      <p class="eyebrow">Compare</p>
+      <h1>Which trip fits better?</h1>
+      <p class="muted-line">Pick any two saved itineraries and compare them side by side.</p>
+    </div>
+    <a class="btn btn-ghost" href="{{ url_for('tools.index') }}">All tools</a>
+  </div>
+
+  <section class="form-panel mb-4">
+    <form method="get" class="form-grid">
+      <div class="mb-3">
+        <label class="form-label" for="left">Trip A</label>
+        <select class="form-select" id="left" name="left" required>
+          <option value="">Choose trip</option>
+          {% for trip in trips %}
+            <option value="{{ trip.id }}" {% if left and left.id == trip.id %}selected{% endif %}>
+              {{ trip.city }} · {{ trip.mood }} · {{ trip.created_at.strftime('%d %b') }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="right">Trip B</label>
+        <select class="form-select" id="right" name="right" required>
+          <option value="">Choose trip</option>
+          {% for trip in trips %}
+            <option value="{{ trip.id }}" {% if right and right.id == trip.id %}selected{% endif %}>
+              {{ trip.city }} · {{ trip.mood }} · {{ trip.created_at.strftime('%d %b') }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="mb-3 d-flex align-items-end">
+        <button class="btn btn-primary" type="submit" {% if trips|length < 2 %}disabled{% endif %}>Compare</button>
+      </div>
+    </form>
+    {% if trips|length < 2 %}
+      <p class="muted-line mt-2 mb-0">You need at least two trips. <a href="{{ url_for('trips.setup') }}">Create another</a>.</p>
+    {% endif %}
+  </section>
+
+  {% if summaries|length == 2 %}
+    <div class="feature-grid">
+      {% for item in summaries %}
+        <section class="soft-panel">
+          <h2>{{ item.trip.city }}</h2>
+          <p class="muted-line">{{ item.trip.mood }} · {{ item.trip.budget_level }} · {{ item.trip.status }}</p>
+          <div class="profile-row"><div><span>Days</span><small>{{ item.trip.num_days }}</small></div></div>
+          <div class="profile-row"><div><span>People</span><small>{{ item.trip.num_people }}</small></div></div>
+          <div class="profile-row"><div><span>Stops</span><small>{{ item.stops }}</small></div></div>
+          <div class="profile-row"><div><span>Estimated spend</span><small>{{ item.total_cost_label }}</small></div></div>
+          <div class="profile-row"><div><span>Visit time</span><small>{{ item.total_time_label }}</small></div></div>
+          <div class="profile-row"><div><span>Max budget</span><small>{{ item.currency }} {{ "%.0f"|format(item.trip.budget_amount) }}</small></div></div>
+          <a class="btn btn-ghost btn-sm mt-2" href="{{ url_for('trips.detail', trip_id=item.trip.id) }}">Open itinerary</a>
+        </section>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endblock %}

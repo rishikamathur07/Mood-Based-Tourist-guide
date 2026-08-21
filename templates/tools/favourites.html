@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Saved favourites · Mood{% endblock %}
+
+{% block content %}
+  <div class="section-header">
+    <div>
+      <p class="eyebrow">Saved</p>
+      <h1>Your favourite places</h1>
+      <p class="muted-line">{{ total }} place{% if total != 1 %}s{% endif %} you’ve hearted from trips.</p>
+    </div>
+    <a class="btn btn-ghost" href="{{ url_for('tools.index') }}">All tools</a>
+  </div>
+
+  {% if grouped %}
+    {% for city, items in grouped.items() %}
+      <section class="soft-panel mb-4">
+        <div class="section-header compact">
+          <h2>{{ city }}</h2>
+          <a class="btn btn-ghost btn-sm" href="{{ url_for('trips.setup') }}?city={{ city }}">Plan {{ city }}</a>
+        </div>
+        {% for favourite in items %}
+          <div class="profile-row">
+            <div>
+              <span>{{ favourite.place.name }}</span>
+              <small>{{ favourite.place.category }} · {{ "%.1f"|format(favourite.place.avg_rating) }} rating</small>
+            </div>
+            <form method="post" action="{{ url_for('tools.remove_favourite', favourite_id=favourite.id) }}">
+              <button class="btn btn-sm btn-heart is-saved" type="submit">♥ Remove</button>
+            </form>
+          </div>
+        {% endfor %}
+      </section>
+    {% endfor %}
+  {% else %}
+    <section class="empty-state">
+      <h2>No favourites yet</h2>
+      <p>Open a trip and tap the heart on any stop to save it here.</p>
+      <a class="btn btn-primary" href="{{ url_for('trips.dashboard') }}">My trips</a>
+    </section>
+  {% endif %}
+{% endblock %}

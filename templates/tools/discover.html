@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Discover places · Mood{% endblock %}
+
+{% block content %}
+  <div class="section-header">
+    <div>
+      <p class="eyebrow">Discover</p>
+      <h1>Find places for your mood</h1>
+      <p class="muted-line">Pick a city and mood — top matches appear below. Add a search to narrow down.</p>
+    </div>
+    <a class="btn btn-ghost" href="{{ url_for('tools.index') }}">All tools</a>
+  </div>
+
+  <section class="form-panel mb-4">
+    <form method="get" class="form-grid">
+      <div class="mb-3">
+        <label class="form-label" for="city">City</label>
+        <select class="form-select" id="city" name="city" required>
+          <option value="">Choose city</option>
+          {% for item in cities %}
+            <option value="{{ item }}" {% if item == city %}selected{% endif %}>{{ item }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="mood">Mood</label>
+        <select class="form-select" id="mood" name="mood" required>
+          <option value="">Choose mood</option>
+          {% for item in moods %}
+            <option value="{{ item }}" {% if item == mood %}selected{% endif %}>{{ item }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="q">Search (optional)</label>
+        <input class="form-control" id="q" name="q" value="{{ query }}" placeholder="Temple, beach, museum…">
+      </div>
+      <div class="mb-3 d-flex align-items-end">
+        <button class="btn btn-primary" type="submit">Show places</button>
+      </div>
+    </form>
+  </section>
+
+  {% if city and mood %}
+    <section class="soft-panel">
+      <h2>{{ places|length }} place{% if places|length != 1 %}s{% endif %} in {{ city }} · {{ mood }}</h2>
+      {% for place in places %}
+        <div class="profile-row">
+          <div>
+            <span>{{ place.name }}</span>
+            <small>
+              {{ place.category }}
+              · {{ "%.1f"|format(place.avg_rating) }} rating
+              · mood {{ "%.1f"|format(place.mood_match_score) }}
+              · {{ place.opening_time }} – {{ place.closing_time }}
+            </small>
+          </div>
+          <div class="profile-row-actions">
+            {% if place.id in favourite_ids %}
+              <span class="review-badge">♥ Saved</span>
+            {% endif %}
+            <a class="btn btn-ghost btn-sm" href="{{ url_for('trips.setup', city=place.city) }}">Plan trip</a>
+          </div>
+        </div>
+      {% else %}
+        <p class="muted-line mb-0">No places found. Try another search or mood.</p>
+      {% endfor %}
+    </section>
+  {% endif %}
+{% endblock %}

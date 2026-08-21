@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Log in · Mood{% endblock %}
+{% block shell_class %}auth-shell{% endblock %}
+
+{% block content %}
+  <section class="craft-hero">
+    <div>
+      <h1 class="hero-title">Pick up where your mood left off</h1>
+      <p class="lead-text mx-auto" style="max-width: 34rem;">
+        Log in to open saved trips, heart places you love, and rate stops once a trip is done.
+      </p>
+    </div>
+
+    <div class="auth-layout">
+      <div class="auth-flash-grid" aria-hidden="true">
+        <article class="flash-card flash-pink">
+          <span>Mood match</span>
+          <strong>Trips that fit how you feel</strong>
+          <p>Calm, curious, romantic, or adventurous — your itinerary follows your energy.</p>
+        </article>
+        <article class="flash-card flash-mint">
+          <span>Favourites</span>
+          <strong>Heart the places you love</strong>
+          <ul>
+            <li>Save from any stop</li>
+            <li>See them on Profile</li>
+          </ul>
+        </article>
+        <article class="flash-card flash-butter">
+          <span>Day plans</span>
+          <strong>A clear day-by-day path</strong>
+          <p>Times, costs, and opening hours laid out so you can just go.</p>
+        </article>
+        <article class="flash-card flash-cloud">
+          <span>Reviews</span>
+          <strong>Stars & short notes</strong>
+          <p>After you mark a trip complete, rate each place and keep your thoughts.</p>
+        </article>
+      </div>
+
+      <section class="auth-panel">
+        <p class="eyebrow">Welcome back</p>
+        <h1>Log in</h1>
+        <p class="muted-line mb-4">Continue planning trips that match your mood.</p>
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label" for="email">Email</label>
+            <input class="form-control" id="email" name="email" type="email" autocomplete="email" required>
+          </div>
+          <div class="mb-4">
+            <label class="form-label" for="password">Password</label>
+            <input class="form-control" id="password" name="password" type="password" autocomplete="current-password" required>
+          </div>
+          <button class="btn btn-primary" type="submit">Log in</button>
+          <a class="btn btn-ghost ms-2" href="{{ url_for('auth.signup') }}">Create account</a>
+        </form>
+      </section>
+    </div>
+  </section>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}My trips · Mood{% endblock %}
+
+{% block content %}
+  <div class="section-header">
+    <div>
+      <p class="eyebrow">Dashboard</p>
+      <h1>My trips</h1>
+      <p class="muted-line">Open a trip to favourite stops, or mark it complete to leave ratings.</p>
+    </div>
+    <a class="btn btn-primary" href="{{ url_for('trips.setup') }}">New trip</a>
+  </div>
+
+  {% if trips %}
+    <div class="item-list">
+      {% for trip in trips %}
+        <article class="list-item">
+          <div>
+            <h2>{{ trip.city }}</h2>
+            <p>
+              {{ trip.num_days }} day{% if trip.num_days != 1 %}s{% endif %}
+              · {{ trip.num_people }} people
+              · {{ trip.mood }}
+              · {{ trip.budget_level }}
+              · {{ trip.itinerary_stops|length }} stops
+              · {{ trip.status }}
+            </p>
+          </div>
+          <a class="btn btn-ghost btn-sm" href="{{ url_for('trips.detail', trip_id=trip.id) }}">View</a>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <section class="empty-state">
+      <h2>No trips yet</h2>
+      <p>Create your first mood-based itinerary — pick how you feel, then explore.</p>
+      <a class="btn btn-primary" href="{{ url_for('trips.setup') }}">Create trip</a>
+    </section>
+  {% endif %}
+{% endblock %}

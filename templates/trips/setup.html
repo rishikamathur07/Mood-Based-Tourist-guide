@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Trip setup · Mood{% endblock %}
+
+{% block content %}
+  <section class="planner-layout">
+    <div class="setup-stage">
+      <article class="flash-card flash-pink">
+        <span>Mood fit</span>
+        <strong id="mlCategoryTitle">What you’ll feel</strong>
+        <small id="mlCategory">Pick city & mood to preview</small>
+      </article>
+      <article class="flash-card flash-butter">
+        <span>Spend</span>
+        <strong id="mlCost">--</strong>
+        <small id="mlCostHint">Estimated total for your group</small>
+      </article>
+      <article class="flash-card flash-mint">
+        <span>Top matches</span>
+        <strong id="heapTitle">Places for you</strong>
+        <small id="heapSummary">Waiting for your choices</small>
+      </article>
+      <article class="flash-card flash-cloud">
+        <span>Budget check</span>
+        <strong id="budgetSummary">--</strong>
+        <small id="pairSummary">How many places fit your spend</small>
+      </article>
+    </div>
+
+    <section class="form-panel planner-form">
+      <p class="eyebrow">New trip</p>
+      <h1>How do you want to feel?</h1>
+      <p class="muted-line">Fill every field — the cards on the left update live as you plan.</p>
+      {% if not cities %}
+        <div class="alert alert-warning mt-4">
+          No places are loaded yet. Run <code>flask init-db</code> and <code>flask import-places</code>.
+        </div>
+      {% endif %}
+      <form method="post" class="mt-4" id="tripSetupForm"
+            data-defaults-usd='{{ budget_defaults|tojson }}'
+            data-defaults-inr='{{ budget_defaults_inr|tojson }}'>
+        <div class="form-grid">
+          <div class="mb-3">
+            <label class="form-label" for="city">City</label>
+            <select class="form-select" id="city" name="city" required>
+              <option value="">Choose a city</option>
+              {% for city in cities %}
+                <option value="{{ city }}" {% if request.args.get('city') == city %}selected{% endif %}>{{ city }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="mood">Mood</label>
+            <select class="form-select" id="mood" name="mood" required>
+              <option value="">Choose a mood</option>
+              {% for mood in moods %}
+                <option value="{{ mood }}">{{ mood }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="currency">Currency</label>
+            <select class="form-select" id="currency" name="currency" required>
+              <option value="INR" {% if currency == "INR" %}selected{% endif %}>₹ Indian Rupee (INR)</option>
+              <option value="USD" {% if currency == "USD" %}selected{% endif %}>$ US Dollar (USD)</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="budget_level">Budget</label>
+            <select class="form-select" id="budget_level" name="budget_level" required>
+              <option value="">Choose a budget</option>
+              {% for level in budget_levels %}
+                <option value="{{ level }}">{{ level }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="budget_amount">Maximum spend</label>
+            <div class="input-with-prefix">
+              <span id="currencyPrefix">{{ '₹' if currency == 'INR' else '$' }}</span>
+              <input class="form-control" id="budget_amount" name="budget_amount" type="number" min="1" step="1" placeholder="Auto-fills when you pick budget" required>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="num_days">Days</label>
+            <input class="form-control" id="num_days" name="num_days" type="number" min="1" max="30" value="1" required>
+          </div>
+          <div class="mb-4">
+            <label class="form-label" for="num_people">People</label>
+            <input class="form-control" id="num_people" name="num_people" type="number" min="1" max="20" value="2" required>
+          </div>
+        </div>
+        <p id="planPreviewStatus" class="muted-line small mb-3">Complete all fields to see live preview.</p>
+        <button class="btn btn-primary" type="submit" {% if not cities %}disabled{% endif %}>Generate itinerary</button>
+      </form>
+    </section>
+  </section>
+{% endblock %}
