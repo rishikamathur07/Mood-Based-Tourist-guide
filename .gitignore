@@ -1,7 +1,11 @@
 .env
 .venv/
+.python_deps/
+tmp*/
 __pycache__/
 *.py[cod]
 .pytest_cache/
 instance/
+# Local SQLite database recreated from the tracked CSV datasets.
+database/*.sqlite3
 *.sqlite3

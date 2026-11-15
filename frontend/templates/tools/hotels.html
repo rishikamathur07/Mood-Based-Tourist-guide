@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Hotels · Mood{% endblock %}
+
+{% block content %}
+  <div class="section-header">
+    <div>
+      <p class="eyebrow">Accommodation Guide</p>
+      <h1>Hotels in {{ city }}</h1>
+      <p class="muted-line">Curated lodging options across budget levels to accompany your travel itinerary.</p>
+    </div>
+    <div>
+      <a class="btn btn-primary" href="{{ url_for('trips.setup') }}?city={{ city }}">Plan trip to {{ city }}</a>
+    </div>
+  </div>
+
+  <section class="soft-panel mb-4">
+    <form method="get" class="hotel-filter-form">
+      <div class="row g-2 align-items-center">
+        <div class="col-md-4">
+          <label class="form-label small" for="citySelect">Destination City</label>
+          <select id="citySelect" name="city" class="form-select form-select-sm" onchange="this.form.submit()">
+            {% for c in cities %}
+              <option value="{{ c }}" {% if c == city %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small" for="budgetSelect">Budget Tier</label>
+          <select id="budgetSelect" name="budget" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="">All Tiers</option>
+            <option value="Low" {% if budget == 'Low' %}selected{% endif %}>Low Budget</option>
+            <option value="Medium" {% if budget == 'Medium' %}selected{% endif %}>Medium Budget</option>
+            <option value="High" {% if budget == 'High' %}selected{% endif %}>High Budget / Luxury</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small" for="currencySelect">Currency</label>
+          <select id="currencySelect" name="currency" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="INR" {% if currency == 'INR' %}selected{% endif %}>₹ INR</option>
+            <option value="USD" {% if currency == 'USD' %}selected{% endif %}>$ USD</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small" for="hotelSearch">Search Name</label>
+          <div class="input-group input-group-sm">
+            <input id="hotelSearch" name="q" value="{{ query or '' }}" class="form-control" placeholder="Filter hotel...">
+            <button class="btn btn-outline-secondary" type="submit">Filter</button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  {% if hotels %}
+    <div class="hotel-directory-grid">
+      {% for hotel in hotels %}
+        <article class="hotel-card">
+          <div class="hotel-card-header">
+            <div>
+              <span class="badge-tier tier-{{ hotel.budget_level|lower }}">{{ hotel.budget_level }}</span>
+              <h2 class="hotel-title">{{ hotel.name }}</h2>
+              <p class="hotel-meta">
+                <span>{{ "%.1f"|format(hotel.avg_rating) }} ★ community rating</span>
+                {% if hotel.distance_from_city_center_km %}
+                  · <span>{{ "%.1f"|format(hotel.distance_from_city_center_km) }} km from center</span>
+                {% endif %}
+              </p>
+            </div>
+            <div class="hotel-price-tag">
+              <strong>{{ format_money(hotel.avg_cost, currency) }}</strong>
+              <small>/ night est.</small>
+            </div>
+          </div>
+          <div class="hotel-card-body">
+            <p class="hotel-desc muted-line">
+              Practical accommodation for {{ hotel.city }} journeys. Verified amenity base, {{ hotel.indoor_outdoor|lower }} facilities, and {{ 'family-friendly' if hotel.family_friendly else 'suitable for solo or adult travellers' }}.
+            </p>
+          </div>
+          <div class="hotel-card-footer">
+            <a class="btn btn-ghost btn-sm" href="https://www.google.com/travel/search?q=Hotels%20in%20{{ hotel.name }}%20{{ hotel.city }}" target="_blank" rel="noopener">
+              Check live rates ↗
+            </a>
+            <a class="btn btn-primary btn-sm" href="{{ url_for('trips.setup') }}?city={{ hotel.city }}">
+              Include in trip
+            </a>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="soft-panel text-center py-5">
+      <p class="lead-text mb-2">No hotels found matching your filter in {{ city }}.</p>
+      <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('tools.hotels', city=city) }}">Reset filter</a>
+    </div>
+  {% endif %}
+{% endblock %}

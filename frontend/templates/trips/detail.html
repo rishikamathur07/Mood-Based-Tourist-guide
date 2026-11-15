@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+
+{% block title %}{{ trip.city }} itinerary · Mood{% endblock %}
+
+{% block content %}
+  <div class="section-header">
+    <div>
+      <p class="eyebrow">Your itinerary</p>
+      <h1>{{ trip.city }}</h1>
+      <p class="muted-line">
+        {{ trip.num_days }} day{% if trip.num_days != 1 %}s{% endif %}
+        · {{ trip.num_people }} people
+        · {{ trip.mood }}
+        · {{ trip.budget_level }}
+        · {{ currency }}
+      </p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      {% if trip.status != "completed" %}
+        <form method="post" action="{{ url_for('trips.complete', trip_id=trip.id) }}">
+          <button class="btn btn-primary" type="submit">Mark trip complete</button>
+        </form>
+      {% else %}
+        <span class="review-badge"><strong>Completed</strong> — you can rate stops below</span>
+      {% endif %}
+      <a class="btn btn-ghost" href="{{ url_for('trips.download_itinerary', trip_id=trip.id) }}">Download itinerary</a>
+      <a class="btn btn-ghost" href="{{ url_for('trips.dashboard') }}">Back to trips</a>
+    </div>
+  </div>
+
+  <div class="help-chip mb-4">
+    <strong>Favourites:</strong> tap the heart on any stop to save it — find them under Profile.
+    <strong>Ratings:</strong> mark the trip complete first, then tap stars and add a short note.
+  </div>
+
+  <section class="summary-grid">
+    <div>
+      <span>Total stops</span>
+      <strong>{{ trip.itinerary_stops|length }}</strong>
+    </div>
+    <div>
+      <span>Attraction tickets</span>
+      <strong>{{ total_cost_label }}</strong>
+    </div>
+    <div>
+      <span>Visit time</span>
+      <strong>{{ format_duration(total_time) }}</strong>
+    </div>
+    <div>
+      <span>Suggested vibe</span>
+      <strong>{{ trip.predicted_category or "N/A" }}</strong>
+    </div>
+    <div>
+      <span>Local trip estimate</span>
+      <strong>{{ format_money(local_budget.total, currency) }}</strong>
+    </div>
+    <div>
+      <span>{% if local_budget.over_budget %}Additional budget needed{% else %}Budget remaining{% endif %}</span>
+      <strong>{{ format_money(local_budget.difference|abs, currency) }}</strong>
+    </div>
+  </section>
+
+  <section class="map-panel">
+    <div class="section-header compact">
+      <div>
+        <p class="eyebrow">Navigation</p>
+        <h2>Your route on Google Maps</h2>
+        <p class="muted-line mb-0">Start: {{ trip.start_location or "City centre" }}. The route order was optimised from this point.</p>
+      </div>
+      <div class="inline-form">
+        {% if maps_directions_url %}
+          <a class="btn btn-primary" href="{{ maps_directions_url }}" target="_blank" rel="noopener">
+            Open in Google Maps
+          </a>
+        {% endif %}
+        {% if maps_transit_url %}
+          <a class="btn btn-ghost" href="{{ maps_transit_url }}" target="_blank" rel="noopener">
+            Public transport
+          </a>
+        {% endif %}
+        <form method="post" action="{{ url_for('trips.simulate_issue', trip_id=trip.id) }}" class="inline-form">
+          <select class="form-select form-select-sm" name="place_id" required>
+            {% for stop in trip.itinerary_stops %}
+              <option value="{{ stop.place_id }}">{{ stop.place.name }}</option>
+            {% endfor %}
+          </select>
+          <select class="form-select form-select-sm" name="reason">
+            <option value="unavailable">Closed / Unavailable</option>
+            <option value="crowded">Too crowded</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" type="submit">Re-plan stop</button>
+        </form>
+        <form method="post" action="{{ url_for('trips.crowd_optimize', trip_id=trip.id) }}">
+          <button class="btn btn-ghost btn-sm" type="submit">Avoid busy times</button>
+        </form>
+      </div>
+    </div>
+
+    {% if has_google_maps_key %}
+      <div id="map" class="map-canvas" data-map-url="{{ url_for('trips.map_data', trip_id=trip.id) }}" aria-label="Interactive itinerary map"></div>
+      <div class="d-flex align-items-center gap-2 mt-2 flex-wrap">
+        <button class="btn btn-ghost btn-sm" id="liveHoursButton" type="button">Check live opening hours</button>
+        <span id="liveHoursStatus" class="muted-line small">Opening-hour schedule currently uses the dataset.</span>
+      </div>
+    {% else %}
+      <div class="maps-free-panel">
+        {% if maps_directions_url %}
+        <p class="lead-text mb-3">
+          Your stops are ready as a driving route. Click the button to open them in Google Maps.
+        </p>
+        <a class="btn btn-primary btn-lg" href="{{ maps_directions_url }}" target="_blank" rel="noopener">
+          Open route in Google Maps
+        </a>
+        <ol class="maps-steps mt-4 mb-0">
+          <li>Click <strong>Open route in Google Maps</strong>.</li>
+          <li>A new tab opens with your itinerary stops.</li>
+          <li>Use Google Maps for turn-by-turn directions (web or phone app).</li>
+        </ol>
+        {% else %}
+          <p class="muted-line mb-0">Generate a trip with at least one stop to unlock Google Maps.</p>
+        {% endif %}
+      </div>
+    {% endif %}
+  </section>
+
+  <section class="soft-panel">
+    <div class="section-header compact">
+      <div>
+        <p class="eyebrow">Estimated local trip cost</p>
+        <h2>Your budget breakdown</h2>
+        <p class="muted-line mb-0">Includes your selected attractions, a suggested stay, meals, and city travel. Flights are excluded.</p>
+      </div>
+      <span class="review-badge"><strong>{{ format_money(local_budget.total, currency) }}</strong> estimated total</span>
+    </div>
+    <div class="package-grid">
+      <div class="package-item"><span>Attractions</span><strong>Your itinerary</strong><small>{{ format_money(local_budget.attractions, currency) }}</small></div>
+      <div class="package-item"><span>Stay</span><strong>{{ local_budget.hotel_name or "Choose a hotel" }}</strong><small>{{ format_money(local_budget.stay, currency) }}{% if local_budget.nights %} for {{ local_budget.nights }} night{% if local_budget.nights != 1 %}s{% endif %}{% endif %}</small></div>
+      <div class="package-item"><span>Meals</span><strong>Daily food allowance</strong><small>{{ format_money(local_budget.food, currency) }}</small></div>
+      <div class="package-item"><span>Local travel</span><strong>City transport allowance</strong><small>{{ format_money(local_budget.transport, currency) }}</small></div>
+    </div>
+  </section>
+
+  <section class="soft-panel">
+    <div class="section-header compact">
+      <div>
+        <p class="eyebrow">Travel guide</p>
+        <h2>Get there and stay nearby</h2>
+        <p class="muted-line mb-0">Flights and lodging can be explored directly in live provider search.</p>
+      </div>
+    </div>
+    <div class="feature-grid">
+      {% if trip.origin_city %}
+        <a class="feature-chip flash-butter tool-link" href="{{ travel_links.flights }}" target="_blank" rel="noopener">
+          <span>Flights</span>
+          <strong>Search {{ trip.origin_city }} to {{ trip.city }}</strong>
+          <small>Compare current airlines and fares in Google Flights</small>
+        </a>
+      {% else %}
+        <a class="feature-chip flash-butter tool-link" href="{{ url_for('trips.setup') }}">
+          <span>Flights</span>
+          <strong>Add your departure city</strong>
+          <small>Use it to create a filled-in flight search</small>
+        </a>
+      {% endif %}
+      <a class="feature-chip flash-mint tool-link" href="{{ url_for('tools.hotels', city=trip.city) }}">
+        <span>Hotels</span>
+        <strong>View reasonable hotels in {{ trip.city }}</strong>
+        <small>Browse verified dataset stays with pricing & ratings</small>
+      </a>
+      <div class="feature-chip flash-cloud">
+        <span>Budget context</span>
+        <strong>{{ total_cost_label }} for attractions</strong>
+        <small>Flight and hotel costs are separate from the dataset-based trip estimate.</small>
+      </div>
+    </div>
+  </section>
+
+  <section class="soft-panel">
+    <div class="section-header compact">
+      <div>
+        <p class="eyebrow">Stays in the dataset</p>
+        <h2>Hotel options in {{ trip.city }}</h2>
+        <p class="muted-line mb-0">Nightly estimates are planning data, clearly separated from attraction ticket spend.</p>
+      </div>
+      <div>
+        <a class="btn btn-ghost btn-sm" href="{{ url_for('tools.hotels', city=trip.city) }}">All hotels in {{ trip.city }} →</a>
+      </div>
+    </div>
+    <div class="hotel-grid">
+      {% for hotel in hotel_options %}
+        <article class="hotel-option">
+          <div>
+            <strong>{{ hotel.name }}</strong>
+            <span>{{ "%.1f"|format(hotel.avg_rating) }} ★ · {{ hotel.budget_level }} budget</span>
+          </div>
+          <b>{{ format_money(hotel.avg_cost, currency) }}<small>/night est.</small></b>
+        </article>
+      {% else %}
+        <p class="muted-line mb-0">No hotel rows are available for this city yet.</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="soft-panel">
+    <div class="section-header compact">
+      <div>
+        <p class="eyebrow">Explore more</p>
+        <h2>Keep planning</h2>
+      </div>
+    </div>
+    <div class="feature-grid">
+      <a class="feature-chip flash-pink tool-link" href="{{ url_for('tools.discover') }}?city={{ trip.city }}&mood={{ trip.mood }}">
+        <span>Discover</span>
+        <strong>More places in {{ trip.city }}</strong>
+        <small>Same mood — browse before your next trip</small>
+      </a>
+      <a class="feature-chip flash-mint tool-link" href="{{ url_for('tools.nearby', trip_id=trip.id) }}">
+        <span>Nearby</span>
+        <strong>Alternatives near your stops</strong>
+        <small>Find close-by places not on this itinerary</small>
+      </a>
+      <a class="feature-chip flash-cloud tool-link" href="{{ url_for('tools.budget') }}?city={{ trip.city }}&mood={{ trip.mood }}&currency={{ currency }}&amount={{ trip.budget_amount|int }}">
+        <span>Budget</span>
+        <strong>What else fits your spend?</strong>
+        <small>See affordable places at your budget</small>
+      </a>
+      <a class="feature-chip flash-blush tool-link" href="{{ url_for('tools.favourites') }}">
+        <span>Saved</span>
+        <strong>Your favourites</strong>
+        <small>All hearted places in one list</small>
+      </a>
+    </div>
+  </section>
+
+  <section class="timeline">
+    {% for stop in trip.itinerary_stops %}
+      {% set existing = reviews_by_place.get(stop.place_id) %}
+      <article class="timeline-item">
+        <div class="time-block">
+          <span>Day {{ stop.day }}</span>
+          <strong>{{ format_minutes(stop.start_minutes) }}–{{ format_minutes(stop.end_minutes) }}</strong>
+        </div>
+        <div>
+          <h2>{{ stop.place.name }}</h2>
+          <p>
+            {{ stop.place.category }}
+            · {{ "%.1f"|format(stop.place.avg_rating) }} community rating
+            {% if stop.place.crowd_level %}
+              · <span class="crowd-tag">{{ stop.place.crowd_level }} crowd</span>
+            {% endif %}
+          </p>
+          <p class="muted-line">
+            Cost {{ format_money(stop.place.avg_cost, currency) }}
+            · {{ format_duration(stop.place.avg_time_spent_mins) }}
+            · {{ stop.place.opening_time }} to {{ stop.place.closing_time }}
+          </p>
+          <div class="stop-actions">
+            <form method="post" action="{{ url_for('trips.toggle_favourite', trip_id=trip.id, place_id=stop.place_id) }}">
+              <button
+                class="btn btn-sm btn-heart {% if stop.place_id in favourite_place_ids %}is-saved{% else %}btn-ghost{% endif %}"
+                type="submit"
+                aria-pressed="{{ 'true' if stop.place_id in favourite_place_ids else 'false' }}"
+              >
+                <span class="heart" aria-hidden="true">{% if stop.place_id in favourite_place_ids %}♥{% else %}♡{% endif %}</span>
+                {% if stop.place_id in favourite_place_ids %}Favourited{% else %}Favourite{% endif %}
+              </button>
+            </form>
+
+            <form method="post" action="{{ url_for('trips.simulate_issue', trip_id=trip.id) }}">
+              <input type="hidden" name="place_id" value="{{ stop.place_id }}">
+              <input type="hidden" name="reason" value="unavailable">
+              <button class="btn btn-sm btn-ghost" type="submit" title="Mark this place closed or unavailable">
+                Mark Unavailable
+              </button>
+            </form>
+
+            <form method="post" action="{{ url_for('trips.simulate_issue', trip_id=trip.id) }}">
+              <input type="hidden" name="place_id" value="{{ stop.place_id }}">
+              <input type="hidden" name="reason" value="crowded">
+              <button class="btn btn-sm btn-ghost" type="submit" title="Mark this place crowded and pick a calmer alternative">
+                Mark Crowded
+              </button>
+            </form>
+
+            {% if existing %}
+              <form method="post" action="{{ url_for('trips.add_review', trip_id=trip.id, place_id=stop.place_id) }}" class="review-form" data-star-form>
+                <input type="hidden" name="rating" value="{{ existing.rating }}">
+                <div class="star-picker" data-star-picker data-value="{{ existing.rating }}" aria-label="Update rating">
+                  {% for rating in range(1, 6) %}
+                    <button type="button" data-star="{{ rating }}" aria-label="{{ rating }} stars">★</button>
+                  {% endfor %}
+                </div>
+                <input class="form-control form-control-sm" name="comment" value="{{ existing.comment or '' }}" placeholder="Update your note">
+                <button class="btn btn-primary btn-sm" type="submit">Update review</button>
+              </form>
+            {% elif trip.status == "completed" %}
+              <form method="post" action="{{ url_for('trips.add_review', trip_id=trip.id, place_id=stop.place_id) }}" class="review-form" data-star-form>
+                <input type="hidden" name="rating" value="5">
+                <div class="star-picker" data-star-picker data-value="5" aria-label="Choose rating">
+                  {% for rating in range(1, 6) %}
+                    <button type="button" data-star="{{ rating }}" aria-label="{{ rating }} stars">★</button>
+                  {% endfor %}
+                </div>
+                <input class="form-control form-control-sm" name="comment" placeholder="Short review">
+                <button class="btn btn-primary btn-sm" type="submit">Rate</button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+      </article>
+    {% endfor %}
+  </section>
+{% endblock %}
+
+{% block scripts %}
+  {% if has_google_maps_key %}
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initTripMap"></script>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}About Mood{% endblock %}
+{% block body_class %}travel-hero-bg{% endblock %}
+{% block shell_class %}about-shell{% endblock %}
+
+{% block content %}
+  <section class="about-hero">
+    <p class="eyebrow">About Mood</p>
+    <h1>Travel plans that leave room for how you feel.</h1>
+    <p class="lead-text">
+      Mood helps you turn a few choices into a practical day-by-day trip. Pick a destination, your pace, and a spending limit; we organise places, timings, and local travel into one clear plan.
+    </p>
+
+    <div class="about-notes">
+      <article>
+        <span>01</span>
+        <h2>Built around your day</h2>
+        <p>Choose a mood such as culture, relaxation, nature, adventure, or nightlife. Your itinerary prioritises places that fit it.</p>
+      </article>
+      <article>
+        <span>02</span>
+        <h2>Costs you can understand</h2>
+        <p>Entrance tickets, stay, meals, and city transport are shown separately, so you can see what makes up the estimate.</p>
+      </article>
+      <article>
+        <span>03</span>
+        <h2>Ready when plans change</h2>
+        <p>Save favourites, review completed trips, explore hotels, and refresh a plan when a stop is unavailable or too busy.</p>
+      </article>
+    </div>
+
+    <div class="hero-actions about-actions">
+      {% if g.user %}
+        <a class="btn btn-primary btn-lg" href="{{ url_for('trips.setup') }}">Plan a trip</a>
+      {% else %}
+        <a class="btn btn-primary btn-lg" href="{{ url_for('auth.signup') }}">Create an account</a>
+        <a class="btn btn-ghost btn-lg" href="{{ url_for('auth.login') }}">Log in</a>
+      {% endif %}
+    </div>
+  </section>
+{% endblock %}

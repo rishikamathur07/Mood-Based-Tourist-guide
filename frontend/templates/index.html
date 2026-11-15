@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Mood · Mood-Based Smart Tourist Recommendation and Navigation System{% endblock %}
+{% block body_class %}travel-hero-bg{% endblock %}
+{% block shell_class %}landing-shell{% endblock %}
+
+{% block content %}
+  <section class="landing-hero">
+    <p class="eyebrow">Mood-Based Smart Tourist Recommendation</p>
+    <h1>Your next journey should feel like you.</h1>
+    <p class="lead-text">
+      Select your destination, set your budget, and build a day-by-day travel itinerary tailored to how you want to feel — from quiet mountain retreats to vibrant cultural landmarks.
+    </p>
+    <div class="hero-actions">
+      {% if g.user %}
+        <a class="btn btn-primary btn-lg" href="{{ url_for('trips.setup') }}">Plan a trip</a>
+        <a class="btn btn-ghost btn-lg" href="{{ url_for('trips.dashboard') }}">My trips</a>
+        <a class="btn btn-ghost btn-lg" href="{{ url_for('tools.hotels') }}">Browse hotels</a>
+      {% else %}
+        <a class="btn btn-primary btn-lg" href="{{ url_for('auth.signup') }}">Try Mood free</a>
+        <a class="btn btn-ghost btn-lg" href="{{ url_for('auth.login') }}">Log in</a>
+      {% endif %}
+    </div>
+
+    <div class="landing-editorial-highlights">
+      <div class="highlight-item">
+        <span>01 · Curated Moods</span>
+        <strong>Tailored Itineraries</strong>
+        <small>Culture, relaxation, adventure, nature, and nightlife recommendations.</small>
+      </div>
+      <div class="highlight-item">
+        <span>02 · Transparent Costs</span>
+        <strong>Local Trip Budgeting</strong>
+        <small>Attractions, reasonable lodging, daily meals, and local transit separated.</small>
+      </div>
+      <div class="highlight-item">
+        <span>03 · Smart Routes</span>
+        <strong>Google Maps Navigation</strong>
+        <small>Turn-by-turn driving directions with live replanning if venues are busy or closed.</small>
+      </div>
+    </div>
+  </section>
+{% endblock %}

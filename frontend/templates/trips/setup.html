@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Trip setup · Mood{% endblock %}
+
+{% block content %}
+  <section class="planner-layout">
+    <div class="setup-stage">
+      <article class="flash-card flash-pink">
+        <span>Mood fit</span>
+        <strong id="mlCategoryTitle">What you’ll feel</strong>
+        <small id="mlCategory">Pick city & mood to preview</small>
+      </article>
+      <article class="flash-card flash-butter">
+        <span>Local trip estimate</span>
+        <strong id="mlCost">--</strong>
+        <small id="mlCostHint">Stay, food, local travel, and attractions. Flights excluded.</small>
+      </article>
+      <article class="flash-card flash-mint">
+        <span>Top matches</span>
+        <strong id="heapTitle">Places for you</strong>
+        <small id="heapSummary">Waiting for your choices</small>
+      </article>
+      <article class="flash-card flash-blush">
+        <span>Route start</span>
+        <strong id="startPointTitle">City centre</strong>
+        <small id="startPointHint">Set a hotel or landmark for a smarter first stop</small>
+      </article>
+    </div>
+
+    <section class="form-panel planner-form">
+      <p class="eyebrow">New trip</p>
+      <h1>How do you want to feel?</h1>
+      <p class="muted-line">Fill every field — the cards on the left update live as you plan.</p>
+      {% if not cities %}
+        <div class="alert alert-warning mt-4">
+          No places are loaded yet. Run <code>flask init-db</code> and <code>flask import-places</code>.
+        </div>
+      {% endif %}
+      <form method="post" class="mt-4" id="tripSetupForm"
+            data-defaults-usd='{{ budget_defaults|tojson }}'
+            data-defaults-inr='{{ budget_defaults_inr|tojson }}'
+            data-defaults-by-currency='{{ budget_defaults_by_currency|tojson }}'
+            data-currency-symbols='{{ currency_symbols|tojson }}'
+            data-city-currencies='{{ city_currencies|tojson }}'>
+        <div class="form-grid">
+          <div class="mb-3">
+            <label class="form-label" for="city">City</label>
+            <select class="form-select" id="city" name="city" required>
+              <option value="">Choose a city</option>
+              {% for city in cities %}
+                <option value="{{ city }}" {% if request.args.get('city') == city %}selected{% endif %}>{{ city }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="origin_city">Flying from</label>
+            <input class="form-control" id="origin_city" name="origin_city" placeholder="e.g. Delhi">
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="mood">Mood</label>
+            <select class="form-select" id="mood" name="mood" required>
+              <option value="">Choose a mood</option>
+              {% for mood in moods %}
+                <option value="{{ mood }}">{{ mood }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="currency">Currency</label>
+            <select class="form-select" id="currency" name="currency" required>
+              {% for code, label in currency_options %}
+                <option value="{{ code }}" {% if currency == code %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="budget_level">Budget</label>
+            <select class="form-select" id="budget_level" name="budget_level" required>
+              <option value="">Choose a budget</option>
+              {% for level in budget_levels %}
+                <option value="{{ level }}">{{ level }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="budget_amount">Maximum spend</label>
+            <div class="input-with-prefix">
+              <span id="currencyPrefix">{{ '₹' if currency == 'INR' else '$' }}</span>
+              <input class="form-control" id="budget_amount" name="budget_amount" type="number" min="1" step="1" placeholder="Auto-fills when you pick budget" required>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="travel_date">Trip start date</label>
+            <input class="form-control" id="travel_date" name="travel_date" type="date">
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="num_days">Days</label>
+            <input class="form-control" id="num_days" name="num_days" type="number" min="1" max="30" value="1" required>
+          </div>
+          <div class="mb-4">
+            <label class="form-label" for="num_people">People</label>
+            <input class="form-control" id="num_people" name="num_people" type="number" min="1" max="20" value="2" required>
+          </div>
+          <div class="mb-4 full-form-row">
+            <label class="form-label" for="start_location">Start route from</label>
+            <input class="form-control" id="start_location" name="start_location" placeholder="City centre, hotel, or landmark" data-geocode-enabled="{{ 'true' if has_google_maps_key else 'false' }}">
+            <input type="hidden" id="start_latitude" name="start_latitude">
+            <input type="hidden" id="start_longitude" name="start_longitude">
+            <small class="muted-line">With Google Maps enabled, a hotel or landmark becomes the first route point. Otherwise we use the city centre.</small>
+          </div>
+        </div>
+        <p id="planPreviewStatus" class="muted-line small mb-3">Complete all fields to see live preview.</p>
+        <button class="btn btn-primary" type="submit" {% if not cities %}disabled{% endif %}>Generate itinerary</button>
+      </form>
+    </section>
+  </section>
+{% endblock %}
+
+{% block scripts %}
+  {% if has_google_maps_key %}
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&callback=initStartPointGeocoder"></script>
+  {% endif %}
+{% endblock %}

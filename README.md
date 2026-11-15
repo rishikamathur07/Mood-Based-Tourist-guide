@@ -1,161 +1,221 @@
-# Mood-Based Smart Tourist Recommendation and Navigation System
+# Mood — Mood-Based Smart Tourist Recommendation and Navigation System
 
-Flask + SQLite project for mood-based tourist recommendation and itinerary planning.
+A complete college-project web application built with **Python Flask**, **SQLite with SQLAlchemy**, **Jinja2 templates**, **vanilla JavaScript**, and **Bootstrap 5**.
 
-## Current Build Status
+**Mood** helps travelers generate personalized, day-by-day itineraries matching how they want to feel (Culture, Relaxation, Nature, Adventure, Nightlife). The system solves itinerary scheduling using classical Data Structures & Algorithms (DSA) and Machine Learning (ML), with optional Google Maps integration and transparent local budgeting.
 
-- Project structure created.
-- Feature 1 started: SQLAlchemy models for `User`, `Place`, `Trip`, and `Review`.
-- Feature 1 auth implemented: signup, login, logout using Flask sessions.
-- Feature 2 implemented: trip setup form with city, mood, budget, and number of days.
-- Feature 3 implemented as standalone Python modules under `algorithms/`:
-  - `knapsack.py` chooses places for the city, mood, budget, and time limit.
-  - `tsp.py` orders selected places with Nearest Neighbor plus 2-opt.
-  - `scheduler.py` assigns visits to valid opening-hour intervals.
-  - `itinerary.py` chains the full `generate_itinerary(...)` pipeline.
-- Web app flow implemented:
-  - Dashboard for saved trips.
-  - Trip setup form.
-  - Generated itinerary detail page with saved stops and timings.
-- Graph + Maps implemented:
-  - Graph creation for selected places.
-  - Dijkstra and A* shortest-path estimates.
-  - Prim's MST for the minimum connected route network.
-  - Floyd-Warshall for all-pairs shortest-path analysis.
-  - KD-tree nearest-neighbour alternatives for nearby replacement ideas.
-  - Google Maps route rendering when `GOOGLE_MAPS_API_KEY` is configured.
-  - Distance Matrix live travel-time estimate when the key is configured.
-- Live re-planning implemented:
-  - Simulate a place issue from itinerary detail.
-  - Priority Queue chooses the next-best replacement by mood score within remaining budget/time.
-- ML endpoints implemented:
-  - `POST /api/predict/category`
-  - `POST /api/predict/cost`
-  - `POST /api/plan-insights`
-- Trie search implemented:
-  - `GET /api/search?q=...`
-- Extra DSA features implemented:
-  - Heap ranking for top mood-matched places.
-  - Binary search budget feasibility on sorted place costs.
-  - Prim's MST route network.
-  - Floyd-Warshall all-pairs route analysis.
-  - KD-tree nearby alternative suggestions.
-- Profile implemented:
-  - My Trips, Favourites, My Reviews, Ratings, and Settings sections.
-- UI upgraded:
-  - Split landing page inspired by modern product-site layouts.
-  - Claymorphism, glassmorphism, neumorphism, and soft paper-style cards.
-  - Visible ML + DSA intelligence cards on trip setup.
+---
 
-## Folder Structure
+## Key Features
+
+1. **User Authentication & Profiles**:
+   - Secure sign-up, log-in, and log-out with password hashing (`werkzeug.security`) and Flask sessions.
+   - Comprehensive profile page featuring **My Trips**, **Favourites** (hearted places), **My Reviews**, **Ratings** distribution chart, and **Settings** (display name updates).
+
+2. **Personalized Trip Creation**:
+   - Customizable trip planner selecting destination city, travel mood, budget level (Low, Medium, High), spending limit, number of days, number of travelers, currency (INR ₹ or USD $), travel start date, and optional starting landmark or hotel.
+   - 52 supported global and Indian destinations (including **Delhi, Goa, Jaipur, Mumbai, Agra, Varanasi, Kochi, Bengaluru, Udaipur, Kolkata**, and international hubs).
+
+3. **Intelligent Day-by-Day Itinerary Generation**:
+   - Time-slotted stops honoring venue opening and closing hours, realistic visit durations, and city transit buffers.
+   - Transparent local-trip cost breakdown clearly separated into **Attractions**, **Stay**, **Meals**, and **Local Transport**. Flights are intentionally excluded from the local calculation because live flight fares vary dynamically by date and airline.
+
+4. **Live Re-Planning & Crowd Optimization**:
+   - Travelers can mark any attraction **Unavailable / Closed** or **Too Crowded** directly from their itinerary.
+   - A Priority Queue algorithm instantly suggests and inserts the optimal mood-matched replacement within the remaining budget and daily time window.
+   - Crowd-aware scheduling allows moving busier venues to earlier morning slots before crowds build up.
+
+5. **Dedicated Accommodation Guide**:
+   - 5 to 10 reasonable, realistic hotels per supported city spanning Low, Medium, and High budget tiers.
+   - Dedicated hotel directory (`/tools/hotels`) with filtering by city and budget tier.
+
+6. **Restrained Editorial Travel UI**:
+   - Atmospheric mountain travel background on landing, login, and signup pages with readable white/cream text sitting directly on the image (no split layout or side panels).
+   - Warm paper surfaces, thin borders, sharp small-radius cards, clear typography hierarchy (Fraunces serif headings and Manrope sans-serif body), and zero visible DSA jargon in the customer-facing interface.
+
+---
+
+## Standalone Algorithms & College Viva Guide
+
+All algorithmic modules reside under `/algorithms` as standalone, testable Python components with detailed in-code comments for college vivas.
+
+| Algorithm | Module | Viva Concept & Purpose | Time Complexity |
+| :--- | :--- | :--- | :--- |
+| **0/1 Knapsack** | `algorithms/knapsack.py` | Multi-dimensional dynamic programming using two capacities (Monetary Budget and Tour Time) to select attractions that maximize total `mood_match_score` without item duplication. | $O(N \cdot B \cdot T)$ |
+| **Nearest Neighbor + 2-opt** | `algorithms/tsp.py` | Traveling Salesperson Problem (TSP) optimization. Nearest Neighbor constructs an initial greedy tour from the starting location using Haversine distance; 2-opt iteratively uncrosses overlapping route edges to minimize transit distance. | Construction: $O(N^2)$, 2-opt: $O(N^2)$ per pass |
+| **Greedy Interval Scheduling** | `algorithms/scheduler.py` | Earliest-feasible finish scheduling. Assigns visits to valid opening intervals, handles transit buffers between stops, and rolls over to the next day when daily window closes. | $O(N)$ |
+| **Priority Queue Replanner** | `algorithms/replanner.py` | Min-heap (`heapq`) storing negated mood scores for live venue swaps. Extracts the highest mood-match candidate matching remaining time and cost constraints in $O(\log N)$ time, with optional crowd penalties. | $O(N \log N)$ build, $O(\log N)$ pop |
+| **Trie (Prefix Tree)** | `algorithms/trie.py` | In-memory prefix tree indexing attraction names. Enables instant autocompletion in $O(L)$ time (proportional to prefix length), bypassing database disk scans. | $O(L)$ search |
+| **Graph Algorithms** | `algorithms/graph.py` | Models places as vertices and travel time as edge weights. Implements **Dijkstra** and **A\*** (using Haversine straight-line heuristic), **Floyd-Warshall** all-pairs shortest paths, and **Prim's MST**. Supports Google Distance Matrix edge weights when configured. | Dijkstra: $O((V+E)\log V)$, Floyd-Warshall: $O(V^3)$, MST: $O(E\log V)$ |
+| **Crowd-Aware Ordering** | `algorithms/crowd.py` | Priority queue that sorts high-crowd places into earlier morning visit windows before lines form. | $O(N \log N)$ |
+
+---
+
+## Machine Learning Integration
+
+- **Place Category Prediction**: A Decision Tree Classifier trained on trip records predicts preferred place category (Historical, Religious, Beach, Nature, City, Adventure) from `city`, `days`, `people`, `mood`, and `budget`.
+- **Trip Cost Estimation**: A Linear Regression model trained on trip records estimates total trip cost.
+- **API Endpoints**:
+  - `POST /api/predict/category`: returns JSON predicted category.
+  - `POST /api/predict/cost`: returns JSON estimated cost converted to selected currency.
+  - `POST /api/plan-insights`: returns live preview of budget feasibility and top matches.
+- **Safe Fallback**: If `scikit-learn` or C-extensions are missing or restricted, the application automatically activates pure-Python dataset-backed fallback models (`CategoryFallbackModel` and `CostFallbackModel`).
+
+---
+
+## Google Maps Integration
+
+- **Configured (`GOOGLE_MAPS_API_KEY` set in `.env`)**:
+  - Renders interactive Google Map with stop markers and turn-by-turn polyline route directions (`google.maps.DirectionsService`).
+  - Fetches live travel estimates (`google.maps.DistanceMatrixService`).
+  - Queries Google Places API for real-time venue opening hours.
+- **Unconfigured (No API key)**:
+  - Generates a direct **"Open route in Google Maps"** link with origin, waypoints, and destination parameters.
+  - Cleanly displays route directions and turn-by-turn guidance without JavaScript errors.
+  - *Never hardcode or commit API keys into source control.*
+
+### Configure a local Google Maps key
+
+1. In Google Cloud Console, create or select a project and attach billing.
+2. In **APIs & Services**, enable **Maps JavaScript API**, **Directions API**, **Places API**, and **Distance Matrix API**. The start-location lookup uses the Maps JavaScript geocoding service; enable **Geocoding API** as well if your Cloud project requires it.
+3. Open **Credentials**, create an API key, and restrict it to these APIs. For local browser use, add these website restrictions:
+   ```text
+   http://127.0.0.1:5000/*
+   http://localhost:5000/*
+   ```
+4. Create `.env` from `.env.example` if it does not already exist, then replace the placeholder:
+   ```env
+   GOOGLE_MAPS_API_KEY=your_actual_key_here
+   ```
+5. Restart Flask. On Trip Setup, type a start hotel or landmark and wait for the field hint to confirm it was found before generating the itinerary.
+
+The embedded map, route, and live opening-hours check need this key. Without it, the itinerary still works and opens the route in Google Maps. Keep `.env` private and never push it to GitHub.
+
+---
+
+## Project Structure
 
 ```text
 MoodBasedTouristGuide/
-  app/                 Flask backend code
-  algorithms/          DSA algorithms used by the itinerary engine
-  data/                CSV datasets used by the app and ML models
-  scripts/             Simple scripts for testing algorithms
-  static/              CSS and later JavaScript files
-  templates/           Jinja HTML pages
-  run.py               Flask entry point
+├── backend/                    # Python application code
+│   ├── app/                    # Flask blueprints, models, services, and routes
+│   ├── algorithms/             # Knapsack, TSP, graph, Trie, KD-Tree, and replanning modules
+│   └── scripts/                # Algorithm, workflow, catalog, and tools test scripts
+├── frontend/                   # Browser-facing files
+│   ├── static/                 # CSS and JavaScript
+│   └── templates/              # Jinja pages for auth, trips, profile, and tools
+├── database/                   # Local data layer
+│   ├── data/                   # Versioned CSV datasets
+│   └── tourist_guide.sqlite3   # Local SQLite database, ignored by Git
+├── .env.example                # Template for environment variables
+├── requirements.txt            # Python dependencies
+├── run.py                      # Application entry point
+├── run_local.ps1               # One-command Windows PowerShell setup and run script
+└── README.md                   # Project documentation
 ```
 
-## Setup
+---
 
-1. Create a virtual environment and install dependencies:
+## Local Setup & Running
 
+### Option 1: One-Command PowerShell Setup (Recommended on Windows)
+
+Open PowerShell in the project directory:
+
+```powershell
+.\run_local.ps1 -Setup
+```
+
+This script automatically:
+1. Creates the Python virtual environment in `.venv`.
+2. Upgrades `pip` and installs all packages from `requirements.txt`.
+3. Handles Windows AppLocker policy by enabling pure-Python SQLAlchemy fallback.
+4. Copies `.env.example` to `.env` if missing.
+5. Initializes the SQLite database (`flask init-db`) and imports the destination dataset (`flask import-places`).
+6. Starts the Flask server on `http://127.0.0.1:5000`.
+
+To start the server subsequently:
+```powershell
+.\run_local.ps1
+```
+
+### Option 2: Manual Setup
+
+1. **Create and activate virtual environment**:
    ```powershell
    python -m venv .venv
    .\.venv\Scripts\Activate.ps1
+   ```
+
+2. **Install requirements**:
+   ```powershell
    pip install -r requirements.txt
    ```
 
-2. Copy `.env.example` to `.env`.
-
-3. Create the SQLite database tables:
-
+3. **Configure Environment**:
    ```powershell
-   flask init-db
+   Copy-Item .env.example .env
+   ```
+   *(Optional)* Add your Google Maps API key in `.env`:
+   ```env
+   GOOGLE_MAPS_API_KEY=your_actual_api_key_here
    ```
 
-4. Import the tourist destination dataset:
-   
+4. **Initialize Database & Import Places**:
    ```powershell
-   flask import-places
+   python -m flask --app run init-db
+   python -m flask --app run import-places
    ```
 
-5. Run the app:
-
+5. **Start Flask Server**:
    ```powershell
-   flask run
+   python -m flask --app run run --port 5000
    ```
+   Open your browser and navigate to `http://127.0.0.1:5000`.
 
-If port 5000 is already busy:
+---
+
+## Running Test Suites
+
+Run the regression and algorithm verification suites:
 
 ```powershell
-flask run --port 5001
+# 1. Test standalone DSA algorithms (Knapsack, TSP, Scheduler, Priority Queue, Trie, Graph)
+.\.venv\Scripts\python.exe backend\scripts\test_algorithms.py
+
+# 2. Test full end-to-end user workflow (Signup, Trip creation, Budget, Replanning, Profile, ML APIs)
+.\.venv\Scripts\python.exe backend\scripts\test_full_workflow.py
+
+# 3. Test explore tools and hotel catalog
+.\.venv\Scripts\python.exe backend\scripts\test_explore_tools.py
 ```
 
-## Google Maps API Key
+---
 
-The itinerary page embeds a live Google Map and also offers **Open in Google Maps**.
+## GitHub Instructions
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/).
-2. Create/select a project and enable billing (Maps needs a billing account; free credits apply).
-3. Enable these APIs:
-   - Maps JavaScript API
-   - Directions API
-   - Distance Matrix API
-   - Places API
-4. Create an API key under **Credentials**.
-5. Open `.env` and set:
+To push the project to GitHub:
 
-   ```text
-   GOOGLE_MAPS_API_KEY=your-real-key-here
+1. **Initialize Git repository** (if not already initialized):
+   ```powershell
+   git init
    ```
 
-6. Restart Flask (`Ctrl+C`, then `flask run`).
+2. **Check Status & Stage Files**:
+   ```powershell
+   git status
+   git add .
+   ```
 
-Until a real key is added, the itinerary page still shows route analytics and an **Open in Google Maps** link built from your stops.
+3. **Commit Changes**:
+   ```powershell
+   git commit -m "Build complete Mood-Based Smart Tourist Recommendation and Navigation System"
+   ```
 
-## Currency (INR / USD)
-
-On **New trip**, choose **₹ Indian Rupee** or **$ US Dollar**. Place costs in the dataset are stored in USD and converted for display using `INR_PER_USD` from `.env` (default `83.5`).
-
-## Web App Flow
-
-1. Sign up or log in.
-2. Open **New trip**.
-3. Choose city, mood, currency, budget level, maximum spend, and number of days.
-4. Submit the form to generate an itinerary.
-5. View live cost/mood insights before submitting.
-6. Open the trip to favourite stops, open Google Maps, and leave ratings after marking complete.
-
-## Extra DSA features
-
-Already included beyond the core knapsack / TSP / scheduler pipeline:
-
-- Trie + edit-distance fuzzy search in the navbar
-- Heap top mood matches
-- Binary-search budget feasibility
-- Graph shortest paths (Dijkstra / A*), Prim MST, Floyd-Warshall
-- KD-tree nearby alternatives
-- Priority-queue live re-plan
-- Union-Find nearby place clusters
-- Sliding-window best mood stretch
-- Hash-map category frequency
-- Two-pointer budget pair suggestions
-
-## Dataset Preprocessing
-
-`flask import-places` reads `data/places.csv`, converts numeric fields, converts Yes/No values to booleans, and inserts or updates `Place` rows in SQLite.
-
-The ML training dataset is stored at `data/trip_records.csv`. The app uses it to predict preferred category and estimated total trip cost. These predictions appear on the trip setup page and are saved with each generated trip.
-
-## Algorithm Smoke Test
-
-Run the standalone DSA pipeline without Flask or SQLite:
-
-```powershell
-python scripts/test_algorithms.py
-```
+4. **Push to Remote**:
+   ```powershell
+   git branch -M main
+   git remote add origin https://github.com/<your-username>/MoodBasedTouristGuide.git
+   git push -u origin main
+   ```
+   *(Note: Ensure your `.env` containing any live private keys remains untracked in `.gitignore`.)*
