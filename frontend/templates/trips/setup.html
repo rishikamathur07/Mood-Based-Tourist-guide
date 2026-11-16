@@ -20,11 +20,6 @@
         <strong id="heapTitle">Places for you</strong>
         <small id="heapSummary">Waiting for your choices</small>
       </article>
-      <article class="flash-card flash-blush">
-        <span>Route start</span>
-        <strong id="startPointTitle">City centre</strong>
-        <small id="startPointHint">Set a hotel or landmark for a smarter first stop</small>
-      </article>
     </div>
 
     <section class="form-panel planner-form">
@@ -54,7 +49,8 @@
           </div>
           <div class="mb-3">
             <label class="form-label" for="origin_city">Flying from</label>
-            <input class="form-control" id="origin_city" name="origin_city" placeholder="e.g. Delhi">
+            <input class="form-control" id="origin_city" name="origin_city" placeholder="Any city or airport, e.g. Delhi or LHR">
+            <small class="muted-line">Enter any departure city. Your destination needs to be one of our itinerary cities.</small>
           </div>
           <div class="mb-3">
             <label class="form-label" for="mood">Mood</label>
@@ -83,7 +79,7 @@
             </select>
           </div>
           <div class="mb-3">
-            <label class="form-label" for="budget_amount">Maximum spend</label>
+            <label class="form-label" for="budget_amount">Suggested trip spend</label>
             <div class="input-with-prefix">
               <span id="currencyPrefix">{{ '₹' if currency == 'INR' else '$' }}</span>
               <input class="form-control" id="budget_amount" name="budget_amount" type="number" min="1" step="1" placeholder="Auto-fills when you pick budget" required>
@@ -101,23 +97,10 @@
             <label class="form-label" for="num_people">People</label>
             <input class="form-control" id="num_people" name="num_people" type="number" min="1" max="20" value="2" required>
           </div>
-          <div class="mb-4 full-form-row">
-            <label class="form-label" for="start_location">Start route from</label>
-            <input class="form-control" id="start_location" name="start_location" placeholder="City centre, hotel, or landmark" data-geocode-enabled="{{ 'true' if has_google_maps_key else 'false' }}">
-            <input type="hidden" id="start_latitude" name="start_latitude">
-            <input type="hidden" id="start_longitude" name="start_longitude">
-            <small class="muted-line">With Google Maps enabled, a hotel or landmark becomes the first route point. Otherwise we use the city centre.</small>
-          </div>
         </div>
-        <p id="planPreviewStatus" class="muted-line small mb-3">Complete all fields to see live preview.</p>
+        <p id="planPreviewStatus" class="muted-line small mb-3">Complete all fields to receive a budget that scales with your city, days, people, and stay.</p>
         <button class="btn btn-primary" type="submit" {% if not cities %}disabled{% endif %}>Generate itinerary</button>
       </form>
     </section>
   </section>
-{% endblock %}
-
-{% block scripts %}
-  {% if has_google_maps_key %}
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&callback=initStartPointGeocoder"></script>
-  {% endif %}
 {% endblock %}

@@ -65,7 +65,7 @@
       <div>
         <p class="eyebrow">Navigation</p>
         <h2>Your route on Google Maps</h2>
-        <p class="muted-line mb-0">Start: {{ trip.start_location or "City centre" }}. The route order was optimised from this point.</p>
+        <p class="muted-line mb-0">The route order is optimised from the selected city centre.</p>
       </div>
       <div class="inline-form">
         {% if maps_directions_url %}
@@ -128,7 +128,7 @@
       <div>
         <p class="eyebrow">Estimated local trip cost</p>
         <h2>Your budget breakdown</h2>
-        <p class="muted-line mb-0">Includes your selected attractions, a suggested stay, meals, and city travel. Flights are excluded.</p>
+        <p class="muted-line mb-0">Includes your selected attractions, stay, meals, and city travel. Flights are searched separately because their prices change live.</p>
       </div>
       <span class="review-badge"><strong>{{ format_money(local_budget.total, currency) }}</strong> estimated total</span>
     </div>

@@ -317,13 +317,31 @@ def main():
                     "num_people": "2",
                     "travel_date": "2026-11-20",
                     "origin_city": "Mumbai",
-                    "start_location": "Connaught Place",
                 },
                 follow_redirects=True,
             )
             assert res_create.status_code == 200
             assert b"Your itinerary is ready" in res_create.data
             print("PASS 4: Trip created and saved itinerary generated")
+
+            # A very low manual amount must still produce a compact plan instead
+            # of returning the former "try a higher budget" dead end.
+            res_low_budget = client.post(
+                "/trips/setup",
+                data={
+                    "city": "Delhi",
+                    "mood": "culture",
+                    "budget_level": "Medium",
+                    "budget_amount": "1",
+                    "currency": "INR",
+                    "num_days": "1",
+                    "num_people": "1",
+                },
+                follow_redirects=True,
+            )
+            assert res_low_budget.status_code == 200
+            assert b"Your itinerary is ready" in res_low_budget.data
+            print("PASS 4b: Low manual budget produces a compact workable itinerary")
 
             with app.app_context():
                 trip = Trip.query.filter_by(city="Delhi").first()
@@ -342,7 +360,7 @@ def main():
             assert b"Meals" in res_detail.data
             assert b"Local travel" in res_detail.data
             # Flight prices excluded from calculated estimate
-            assert b"Flights are excluded" in res_detail.data or b"not included" in res_detail.data
+            assert b"Flights are searched separately" in res_detail.data or b"not included" in res_detail.data
             # Google Maps fallback route link when no API key configured
             assert b"Open in Google Maps" in res_detail.data or b"Open route in Google Maps" in res_detail.data
             print("PASS 5: Trip detail presents stops, map link, and transparent budget breakdown")

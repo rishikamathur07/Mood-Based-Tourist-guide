@@ -66,8 +66,6 @@ def google_maps_directions_url(stops, trip=None):
     if not points:
         return ""
     origin = points[0]
-    if trip and trip.start_latitude is not None and trip.start_longitude is not None:
-        origin = f"{trip.start_latitude},{trip.start_longitude}"
     destination = points[-1]
     waypoints = "|".join(points[1:-1])
     url = (
@@ -87,8 +85,6 @@ def google_maps_transit_url(stops, trip=None):
     if not points:
         return ""
     origin = points[0]
-    if trip and trip.start_latitude is not None and trip.start_longitude is not None:
-        origin = f"{trip.start_latitude},{trip.start_longitude}"
     url = (
         "https://www.google.com/maps/dir/?api=1"
         f"&origin={origin}&destination={points[-1]}&travelmode=transit"
@@ -106,6 +102,32 @@ def city_center_coordinate(places):
         sum(place.latitude for place in places) / len(places),
         sum(place.longitude for place in places) / len(places),
     )
+
+
+def itinerary_catalog(city, mood, budget_level):
+    """Return the best available city catalog without making planning brittle.
+
+    Mood and budget tier are preferences. When a city has no exact records for
+    either preference, a traveller should still receive a useful city itinerary
+    rather than an empty-plan error.
+    """
+    city_places = trusted_city_places(
+        Place.query.filter_by(city=city).filter(Place.category != "Hotel").all()
+    )
+    mood_places = [place for place in city_places if place.mood_tag.casefold() == mood.casefold()]
+    preferred_places = mood_places or city_places
+    tier_places = [place for place in preferred_places if place.budget_level == budget_level]
+    return tier_places or preferred_places, bool(mood_places), bool(tier_places)
+
+
+def itinerary_rows(places, requested_mood):
+    """Keep the chosen city fallback eligible for the same itinerary pipeline."""
+    rows = []
+    for place in places:
+        row = place_to_algorithm_row(place)
+        row["mood_tag"] = requested_mood
+        rows.append(row)
+    return rows
 
 
 def travel_search_links(trip):
@@ -225,9 +247,6 @@ def setup():
         num_people_raw = request.form.get("num_people", "1")
         origin_city = request.form.get("origin_city", "").strip()
         travel_date = request.form.get("travel_date", "").strip()
-        start_location = request.form.get("start_location", "").strip()
-        start_latitude_raw = request.form.get("start_latitude", "").strip()
-        start_longitude_raw = request.form.get("start_longitude", "").strip()
 
         try:
             num_days = int(num_days_raw)
@@ -246,36 +265,18 @@ def setup():
 
         budget_amount_usd = to_usd(budget_amount_local, currency)
 
-        try:
-            start_coordinate = (float(start_latitude_raw), float(start_longitude_raw))
-        except ValueError:
-            start_coordinate = None
-
         if not city or not mood or not budget_level or num_days < 1 or num_people < 1 or budget_amount_local <= 0:
             flash("Choose a city, mood, budget, currency, and at least one day.", "danger")
             return render_setup(currency=currency)
 
-        matching_places = (
-            Place.query.filter_by(city=city, mood_tag=mood)
-            .filter(Place.category != "Hotel")
-            .all()
-        )
-        matching_places = trusted_city_places(matching_places)
-        if budget_level:
-            budget_matches = [place for place in matching_places if place.budget_level == budget_level]
-            if budget_matches:
-                matching_places = budget_matches
-
-        # When a custom point has not been geocoded by Google Maps, use a
-        # deterministic coordinate from the selected city instead of ignoring
-        # the start-point part of the route algorithm.
-        if start_coordinate is None:
-            start_coordinate = city_center_coordinate(matching_places)
-        if not start_location:
-            start_location = "City centre"
+        matching_places, has_exact_mood, has_exact_tier = itinerary_catalog(city, mood, budget_level)
+        # City centre is a consistent route origin without requiring users to
+        # provide a hotel or landmark before planning.
+        start_coordinate = city_center_coordinate(matching_places)
+        start_location = "City centre"
 
         scheduled_visits = generate_itinerary(
-            [place_to_algorithm_row(place) for place in matching_places],
+            itinerary_rows(matching_places, mood),
             city=city,
             mood=mood,
             budget=int(budget_amount_usd),
@@ -283,9 +284,32 @@ def setup():
             start_coordinate=start_coordinate,
         )
 
+        if not scheduled_visits and matching_places:
+            # Preserve a usable plan for an accidentally low manually-entered
+            # amount by raising only to the cheapest possible attraction entry.
+            minimum_entry = min(max(0, place.avg_cost) for place in matching_places)
+            effective_budget = max(int(budget_amount_usd), int(minimum_entry))
+            scheduled_visits = generate_itinerary(
+                itinerary_rows(matching_places, mood),
+                city=city,
+                mood=mood,
+                budget=effective_budget,
+                days=num_days,
+                start_coordinate=start_coordinate,
+            )
+            if scheduled_visits and effective_budget > budget_amount_usd:
+                budget_amount_usd = effective_budget
+                budget_amount_local = from_usd(effective_budget, currency)
+                flash("Your amount was below the lowest available entry ticket, so the planner used the minimum workable attraction allowance.", "info")
+
         if not scheduled_visits:
-            flash("No itinerary could be generated with those choices. Try a higher budget or more days.", "warning")
+            flash("This city has no visitable places for the selected dates. Please choose another destination.", "warning")
             return render_setup(currency=currency)
+
+        if not has_exact_mood:
+            flash("This city has limited exact mood matches, so the plan uses its best available attractions.", "info")
+        elif not has_exact_tier:
+            flash("This city has limited places in that price tier, so the plan uses the closest available options.", "info")
 
         category_prediction = train_category_model().predict(
             [
@@ -387,6 +411,7 @@ def detail(trip_id):
     )
 
 
+
 @trips_bp.route("/<int:trip_id>/download")
 @login_required
 def download_itinerary(trip_id):
@@ -432,15 +457,7 @@ def map_data(trip_id):
         {
             "points": points,
             "city": trip.city,
-            "start": (
-                {
-                    "name": trip.start_location or "City centre",
-                    "lat": trip.start_latitude,
-                    "lng": trip.start_longitude,
-                }
-                if trip.start_latitude is not None and trip.start_longitude is not None
-                else None
-            ),
+            "start": None,
             "directions_url": google_maps_directions_url(stops, trip),
         }
     )

@@ -229,58 +229,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 });
 
-// Geocoding converts an optional hotel or landmark into the route's starting
-// point. Submission waits for a pending lookup so the entered point is used.
-let geocodeStartPoint = null;
-window.initStartPointGeocoder = function initStartPointGeocoder() {
-  const locationInput = document.querySelector("#start_location");
-  const latitudeInput = document.querySelector("#start_latitude");
-  const longitudeInput = document.querySelector("#start_longitude");
-  const cityInput = document.querySelector("#city");
-  if (!locationInput || !latitudeInput || !longitudeInput || !window.google) return;
-
-  const geocoder = new google.maps.Geocoder();
-  let timer;
-  const resolveLocation = () => {
-    const location = locationInput.value.trim();
-    const city = cityInput?.value || "";
-    if (location.length < 3) return Promise.resolve(false);
-    return new Promise((resolve) => {
-      geocoder.geocode({ address: `${location}, ${city}` }, (results, status) => {
-        if (status !== "OK" || !results?.[0]) {
-          resolve(false);
-          return;
-        }
-        const point = results[0].geometry.location;
-        latitudeInput.value = String(point.lat());
-        longitudeInput.value = String(point.lng());
-        const title = document.querySelector("#startPointTitle");
-        const hint = document.querySelector("#startPointHint");
-        if (title) title.textContent = results[0].formatted_address;
-        if (hint) hint.textContent = "This point will become the first route anchor";
-        resolve(true);
-      });
-    });
-  };
-
-  geocodeStartPoint = resolveLocation;
-  locationInput.addEventListener("input", () => {
-    latitudeInput.value = "";
-    longitudeInput.value = "";
-    window.clearTimeout(timer);
-    if (locationInput.value.trim().length < 3) return;
-    timer = window.setTimeout(() => {
-      void resolveLocation();
-    }, 500);
-  });
-
-  cityInput?.addEventListener("change", () => {
-    latitudeInput.value = "";
-    longitudeInput.value = "";
-    if (locationInput.value.trim().length >= 3) void resolveLocation();
-  });
-};
-
 const setupForm = document.querySelector("#tripSetupForm");
 const budgetSelect = document.querySelector("#budget_level");
 const amountInput = document.querySelector("#budget_amount");
@@ -409,24 +357,6 @@ async function updateBudgetSuggestions() {
     console.error(error);
   }
 }
-
-setupForm?.addEventListener("submit", async (event) => {
-  const locationInput = document.querySelector("#start_location");
-  const latitudeInput = document.querySelector("#start_latitude");
-  const longitudeInput = document.querySelector("#start_longitude");
-  const mapsEnabled = locationInput?.dataset.geocodeEnabled === "true";
-  const needsLookup = mapsEnabled && locationInput?.value.trim().length >= 3 &&
-    (!latitudeInput?.value || !longitudeInput?.value);
-  if (!needsLookup || !geocodeStartPoint) return;
-
-  event.preventDefault();
-  if (planPreviewStatus) planPreviewStatus.textContent = "Finding your route starting point…";
-  const found = await geocodeStartPoint();
-  if (!found && planPreviewStatus) {
-    planPreviewStatus.textContent = "Start place could not be located; city centre will be used.";
-  }
-  setupForm.submit();
-});
 
 async function updatePlanInsights() {
   if (!setupForm) return;

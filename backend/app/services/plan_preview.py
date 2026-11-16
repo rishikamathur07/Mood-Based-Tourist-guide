@@ -29,18 +29,17 @@ def build_budget_suggestions(payload: dict) -> dict:
     num_days = int(payload["num_days"])
     num_people = int(payload["num_people"])
 
-    all_candidates = trusted_city_places(
-        Place.query.filter_by(city=city, mood_tag=mood).filter(Place.category != "Hotel").all()
+    city_candidates = trusted_city_places(
+        Place.query.filter_by(city=city).filter(Place.category != "Hotel").all()
     )
+    mood_candidates = [place for place in city_candidates if place.mood_tag.casefold() == mood.casefold()]
+    all_candidates = mood_candidates or city_candidates
     hotels = trusted_city_places(Place.query.filter_by(city=city, category="Hotel").all())
     suggestions = {}
 
     for level in ("Low", "Medium", "High"):
         level_candidates = [place for place in all_candidates if place.budget_level == level]
-        attraction_cost = _representative_daily_attraction_cost(
-            level_candidates or all_candidates,
-            num_days,
-        )
+        attraction_cost = _representative_daily_attraction_cost(level_candidates or all_candidates, num_days)
         estimate = calculate_local_trip_budget(
             budget_level=level,
             num_days=num_days,
@@ -101,16 +100,19 @@ def build_plan_preview(payload: dict, use_cache: bool = True) -> dict:
             }
         ]
     )[0]
-    query = Place.query.filter_by(city=city, mood_tag=mood).filter(Place.category != "Hotel")
-    catalog_places = trusted_city_places(query.all())
+    city_places = trusted_city_places(
+        Place.query.filter_by(city=city).filter(Place.category != "Hotel").all()
+    )
+    mood_places = [place for place in city_places if place.mood_tag.casefold() == mood.casefold()]
+    catalog_places = mood_places or city_places
     budget_matches = [place for place in catalog_places if place.budget_level == budget_level]
     if budget_matches:
         catalog_places = budget_matches
-    places = [place_from_mapping(place_to_row(place)) for place in catalog_places]
+    places = [place_from_mapping({**place_to_row(place), "mood_tag": mood}) for place in catalog_places]
     budget_info = budget_feasibility(places, budget_amount_usd)
     top_places = top_places_by_score(places, limit=5)
     scheduled = generate_itinerary(
-        [place_to_row(place) for place in catalog_places],
+        [{**place_to_row(place), "mood_tag": mood} for place in catalog_places],
         city=city,
         mood=mood,
         budget=budget_amount_usd,

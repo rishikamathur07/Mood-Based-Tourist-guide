@@ -30,8 +30,8 @@ def calculate_local_trip_budget(
     nights = max(0, num_days - 1)
     rooms = max(1, ceil(num_people / 2))
     matching_hotels = [hotel for hotel in hotels if hotel.budget_level == level]
-    selected_hotel = min(matching_hotels or hotels, key=lambda hotel: hotel.avg_cost, default=None)
-    stay_cost = (selected_hotel.avg_cost * nights * rooms) if selected_hotel else 0
+    hotel = min(matching_hotels or hotels, key=lambda item: item.avg_cost, default=None)
+    stay_cost = (hotel.avg_cost * nights * rooms) if hotel else 0
     food_cost = daily["food"] * num_days * num_people
     transport_cost = daily["transport"] * num_days * num_people
     total = attraction_cost + stay_cost + food_cost + transport_cost
@@ -44,5 +44,6 @@ def calculate_local_trip_budget(
         "total": round(total, 2),
         "nights": nights,
         "rooms": rooms,
-        "hotel_name": selected_hotel.name if selected_hotel else None,
+        "hotel_name": hotel.name if hotel else None,
+        "hotel_id": hotel.id if hotel else None,
     }

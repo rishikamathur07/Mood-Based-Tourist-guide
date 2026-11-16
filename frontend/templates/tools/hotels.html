@@ -81,9 +81,6 @@
             <a class="btn btn-ghost btn-sm" href="https://www.google.com/travel/search?q=Hotels%20in%20{{ hotel.name }}%20{{ hotel.city }}" target="_blank" rel="noopener">
               Check live rates ↗
             </a>
-            <a class="btn btn-primary btn-sm" href="{{ url_for('trips.setup') }}?city={{ hotel.city }}">
-              Include in trip
-            </a>
           </div>
         </article>
       {% endfor %}
